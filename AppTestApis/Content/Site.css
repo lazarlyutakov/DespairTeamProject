@@ -32,3 +32,31 @@ textarea {
     width: 49%;
     vertical-align: top;
 }
+
+#betslip {
+    background-color: rgba(182, 255, 0, 0.5);
+    height: 500px;
+    overflow: auto;
+}
+
+#betslip .betslip-selection {
+    margin: 5px;
+    /*height: 65px;*/
+    background-color: rgba(182, 255, 0, 0.5);
+    border: 1px dashed black;
+    padding: 2px;
+}
+
+#betslip .betslip-selection .selection-info-container {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+#betslip .betslip-selection .event-info-container {
+}
+
+#betslip .betslip-selection .betslip-return-info-container {
+    text-align: right;
+    display: inline;
+    margin: auto;
+}

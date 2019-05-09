@@ -19,6 +19,7 @@
     var CALCULATE_BET_API = 'https://stgapi.sbtech.com/ice2018/betting/v1/calculatebets';
 
     var selectionsMap = {};
+    var selectionInfoMapping = {};
 
     var queryResult = $.ajax({
         url: EVENT_API,
@@ -58,8 +59,19 @@
                             var selectionButton = document.createElement('button');
                             selectionButton.textContent = selection.name + '(' + selection.displayOdds.decimal + ')';
                             var $button = $(selectionButton);
+                            $button.attr('data-selection-event-betslip-line', event.betslipLine);
+                            $button.attr('data-selection-market-betslip-line', market.betslipLine);
+                            $button.attr('data-selection-betslip-line', selection.betslipLine);
                             $button.attr('data-selection-id', selection.id);
                             $button.addClass('selection-button');
+
+                            selectionInfoMapping[selection.id] = {
+                                'eventID': event.id,
+                                'eventBetslipLine': event.betslipLine,
+                                'marketID': market.id,
+                                'marketBetslipLine': market.betslipLine,
+                                'selectionBetslipLine': selection.betslipLine
+                            };
 
                             selectionLi.appendChild(selectionButton);
 
@@ -86,7 +98,8 @@
 
             for (var i = 0; i < buttonCollection.length; i++) {
                 buttonCollection[i].addEventListener('click', function () {
-                    var selectionID = $(event.target).attr('data-selection-id');
+                    var self = $(event.target);
+                    var selectionID = self.attr('data-selection-id');
 
                     if (selectionsMap[selectionID]) {
                         selectionsMap[selectionID] = false;
@@ -121,13 +134,86 @@
                             var df = document.createDocumentFragment();
                             
                             for (var selection of result.selections) {
-                                var selectionDiv = document.createElement('div');
-                                selectionDiv.textContent = selection.displayOdds;
+                                var currentSelectionInfo = selectionInfoMapping[selection.id];
 
-                                df.appendChild(selectionDiv);
+                                var isInBetslip = $('#betslip .betslip-selection[data-selection-id="' + selection.id + '"]').length;
+
+                                if (!isInBetslip) {
+
+                                    var betslipSelectionContainerDiv = document.createElement('div');
+                                    betslipSelectionContainerDiv.classList.add('betslip-selection');
+                                    $(betslipSelectionContainerDiv).attr('data-selection-id', selection.id);
+
+                                    var selectionInfoContainerDiv = document.createElement('div');
+                                    selectionInfoContainerDiv.classList.add('selection-info-container');
+
+                                    var selectionInfoBetslipLineSpan = document.createElement('span');
+                                    selectionInfoBetslipLineSpan.classList.add('selection-info');
+                                    selectionInfoBetslipLineSpan.textContent = currentSelectionInfo.selectionBetslipLine;
+
+                                    var selectionInfoBetslipOddsSpan = document.createElement('span');
+                                    selectionInfoBetslipOddsSpan.classList.add('selection-info-odds');
+                                    selectionInfoBetslipOddsSpan.textContent = selection.displayOdds;
+
+                                    selectionInfoContainerDiv.appendChild(selectionInfoBetslipLineSpan);
+                                    selectionInfoContainerDiv.textContent += ' @@ ';
+                                    selectionInfoContainerDiv.appendChild(selectionInfoBetslipOddsSpan);
+
+                                    var eventInfoContainerDiv = document.createElement('div');
+                                    eventInfoContainerDiv.classList.add('event-info-container');
+
+                                    var marketInfoDiv = document.createElement('div');
+                                    marketInfoDiv.classList.add('market-info');
+                                    marketInfoDiv.textContent = currentSelectionInfo.marketBetslipLine;
+
+                                    var eventInfoDiv = document.createElement('div');
+                                    eventInfoDiv.classList.add('event-info');
+                                    eventInfoDiv.textContent = currentSelectionInfo.eventBetslipLine;
+
+                                    eventInfoContainerDiv.appendChild(marketInfoDiv);
+                                    eventInfoContainerDiv.appendChild(eventInfoDiv);
+
+                                    var betslipStakeContainer = document.createElement('div');
+                                    betslipStakeContainer.classList.add('betslip-stake-container');
+
+                                    var betslipStakeInput = document.createElement('input');
+                                    betslipStakeInput.type = 'number';
+                                    betslipStakeInput.classList.add('betslip-stake-input');
+
+                                    var betslipReturnInfoContainer = document.createElement('div');
+                                    betslipReturnInfoContainer.classList.add('betslip-return-info-container');
+
+                                    var betslipReturnInfoLabelSpan = document.createElement('span');
+                                    betslipReturnInfoLabelSpan.classList.add('betslip-return-info-label');
+                                    betslipReturnInfoLabelSpan.textContent = 'Returns: ';
+
+                                    var betslipReturnInfoValueSpan = document.createElement('span');
+                                    betslipReturnInfoValueSpan.classList.add('betslip-return-info-value');
+
+                                    betslipReturnInfoContainer.appendChild(betslipReturnInfoLabelSpan);
+                                    betslipReturnInfoContainer.appendChild(betslipReturnInfoValueSpan);
+
+                                    betslipStakeInput.addEventListener('change', function () {
+                                        var self = $(event.target);
+                                        var betslipSelectionContainer = self.closest('.betslip-selection');
+
+                                        var currentOdds = +betslipSelectionContainer.find('.selection-info-odds').text();
+                                        var returnSpan = betslipSelectionContainer.find('.betslip-return-info-value');
+                                        
+                                        returnSpan.text(currentOdds * (+self.val()));
+                                    }, false);
+
+                                    betslipStakeContainer.appendChild(betslipStakeInput);
+                                    betslipStakeContainer.appendChild(betslipReturnInfoContainer);
+
+                                    betslipSelectionContainerDiv.appendChild(selectionInfoContainerDiv);
+                                    betslipSelectionContainerDiv.appendChild(eventInfoContainerDiv);
+                                    betslipSelectionContainerDiv.appendChild(betslipStakeContainer);
+
+                                    df.appendChild(betslipSelectionContainerDiv);
+                                    $('#betslip').append(df);
+                                }
                             }
-
-                            $('#betslip').html(df);
                         });
                 }, false);
             }
