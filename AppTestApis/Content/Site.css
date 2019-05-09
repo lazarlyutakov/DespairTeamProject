@@ -34,29 +34,51 @@ textarea {
 }
 
 #betslip {
+    background-color: #ccc;
+    padding: 5px;
+}
+
+#betslip #betslip-selections {
     background-color: rgba(182, 255, 0, 0.5);
     height: 500px;
     overflow: auto;
 }
 
-#betslip .betslip-selection {
-    margin: 5px;
-    /*height: 65px;*/
+#betslip #betslip-selections .betslip-selection {
+    margin: 5px;    
     background-color: rgba(182, 255, 0, 0.5);
     border: 1px dashed black;
     padding: 2px;
 }
 
-#betslip .betslip-selection .selection-info-container {
+#betslip #betslip-selections .betslip-selection .selection-info-container {
     font-weight: bold;
     font-size: 15px;
 }
 
-#betslip .betslip-selection .event-info-container {
+#betslip #betslip-selections .betslip-selection .selection-info-container .selection-info-odds {
+    color: green;
+    font-weight: bold;
 }
 
-#betslip .betslip-selection .betslip-return-info-container {
+#betslip #betslip-selections .betslip-selection .event-info-container {
+}
+
+#betslip #betslip-selections .betslip-selection .betslip-return-info-container {
     text-align: right;
     display: inline;
     margin: auto;
+}
+
+#betslip #betslip-selections .betslip-selection .betslip-return-info-container .betslip-return-info-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: green;
+}
+
+#betslip #betslip-place-bet #place-bet-button {
+    width: 100%;
+    height: 40px;
+    margin-top: 10px;
+    display: none;
 }
