@@ -11,16 +11,18 @@
     <div id="betslip-place-bet">
         <button id="place-bet-button">PLACE BET</button>
     </div>
+    <div id="placed-bets"></div>
 </div>
 
 
 <script src="~/Scripts/jquery-3.3.1.js"></script>
 <script>
-    var token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTaXRlSWQiOjE4MiwiU2Vzc2lvbklkIjoiZDBmNzE4NmMtMmM1Yi00YjNjLThkMGYtM2M4ZmRhMzhhZjMwIiwibmJmIjoxNTU3MzE5MjUwLCJleHAiOjE1NTc5MjQwNTAsImlhdCI6MTU1NzMxOTI1MH0.pu6U7pf8vDyF4lmLegdTTEAdiw5BnL_4IVNmgjjritI';
+    var pureToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTaXRlSWQiOjE4MiwiU2Vzc2lvbklkIjoiZDBmNzE4NmMtMmM1Yi00YjNjLThkMGYtM2M4ZmRhMzhhZjMwIiwibmJmIjoxNTU3MzE5MjUwLCJleHAiOjE1NTc5MjQwNTAsImlhdCI6MTU1NzMxOTI1MH0.pu6U7pf8vDyF4lmLegdTTEAdiw5BnL_4IVNmgjjritI';
+    var token = 'Bearer ' + pureToken;
 
-    var EVENT_API = 'https://stgapi.sbtech.com/ice2018/sportsdata/v2/events?query=%24top%3D3%26%24orderby%3Dtotalbets%20desc%20&count=false';
     var CALCULATE_BET_API = 'https://stgapi.sbtech.com/ice2018/betting/v1/calculatebets';
-    var LOGIN_API = 'https://stgapi.sbtech.com/ice2018/auth/platform/v1/api/login';
+    var PLACE_BET_API = 'https://stgapi.sbtech.com/ice2018/betting/v1/placebets';
+    var LOGIN_API = 'https://api.play-gaming.com/auth/v1/api/login';
     var EVENT_API = 'https://stgapi.sbtech.com/ice2018/sportsdata/v2/events?locale=en&query=%24top%3D3&count=false';
 
     var selectionsMap = {};
@@ -29,6 +31,12 @@
     var loggedToken;
     var USERNAME = "TestUser321";
     var PASSWORD = "TestUser333";
+
+    //var USERNAME = "Ivaylo.bo";
+    //var PASSWORD = "SBTECHFIFA2018!";
+
+    //var USERNAME = "qatestacc4";
+    //var PASSWORD = "Sb123456";
     var REMEMBERME = "true";
 
     var loginObject = {}
@@ -131,7 +139,7 @@
                     var self = $(event.target);
                     var selectionID = self.attr('data-selection-id');
 
-                    $(event.target).toggleClass('selected');                    
+                    $(event.target).toggleClass('selected');
 
                     if (selectionsMap[selectionID]) {
                         delete selectionsMap[selectionID];
@@ -257,4 +265,112 @@
             }
         });
 
+    $('#betslip #place-bet-button').click(function () {
+        var selections = $('#betslip #betslip-selections .betslip-selection');
+
+        var dataBodyObject = {};
+        dataBodyObject.oddsStyle = "decimal";
+        dataBodyObject.Selections = [];
+
+        for (var i = 0; i < selections.length; i++) {
+
+            var selectionID = $(selections[i]).attr('data-selection-id');
+
+            dataBodyObject.Selections.push({ id: selectionID });
+        }
+
+        var calculateBetsQueryResult = $.ajax({
+            url: CALCULATE_BET_API,
+            dataType: 'json',
+            type: "POST",
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader('Authorization', token);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+            },
+            data: JSON.stringify(dataBodyObject)
+        })
+            .then(function (result) {
+                var placeBetObject = {};
+                placeBetObject.oddsStyle = "decimal";
+                placeBetObject.selections = result.selections;
+                placeBetObject.bets = result.bets;
+
+                for (var bet of placeBetObject.bets) {
+                    var $betSelection = $('#betslip #betslip-selections .betslip-selection[data-selection-id="' + bet.selectionsMapped[0].id + '"]');
+
+                    if ($betSelection) {
+                        var betStake = +$betSelection.find('.betslip-stake-input').val();
+                        var potentialReturns = betStake * bet.trueOdds;
+
+                        bet.stake = betStake;
+                        bet.potentialReturns = potentialReturns;
+                    }
+                }
+
+                var placeBetQueryResult = $.ajax({
+                    url: PLACE_BET_API,
+                    dataType: 'json',
+                    type: "POST",
+                    beforeSend: function (xhr) {
+                        xhr.setRequestHeader('Authorization', loggedToken);
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                    },
+                    data: JSON.stringify(placeBetObject)
+                })
+                    .then(function (result) {
+                        var df = document.createDocumentFragment();
+
+                        for (var bet of result.bets) {
+                            var postedBetContainer = document.createElement('div');
+                            postedBetContainer.classList.add('posted-bet-container');
+
+                            var postedBetIDSpan = document.createElement('span');
+                            postedBetIDSpan.classList.add('posted-bet-id');                            
+                            postedBetIDSpan.textContent = bet.selectionsMapped[0].id;
+
+                            postedBetContainer.appendChild(postedBetIDSpan);
+
+                            df.appendChild(postedBetContainer);
+                        }
+                                                
+                        $('#placed-bets').html('').append(df);
+
+                        // Clear state
+                        $('#betslip #betslip-selections').empty();
+                        $('#betslip #place-bet-button').hide();
+                        $('.selection-button.selected').toggleClass('selected');
+                    });
+            });
+    });
+
+
+
+
+
+    
+    var serviceUrl = 'https://stgapi.sbtech.com/ice2018/sportsdata/v2/stream';
+    var entity = 'events';
+    var jwt = pureToken;
+
+    var url = `${serviceUrl}/${entity}?query=%24filter%3DisLive%20eq%20true&includeMarkets=&initialData=false&locale=en&until=&from=&timeRange=None&format=application/json&jwt=${jwt}`;
+
+    var eventSource = new EventSource(url);
+
+    //eventSource.onmessage = function(e) {
+    //    console.log('Message without any type: ' + e.data);        
+    //}
+
+    eventSource.addEventListener("update", e => {
+        console.log(e.data);
+    }, false);
+
+    eventSource.onerror = e => {
+        if (e.eventPhase == EventSource.CLOSED) {
+            eventSource.close();
+            console.log("Event Source Closed");
+        }
+        else {
+            console.log("EventSource failed.");
+        }
+    };
 </script>

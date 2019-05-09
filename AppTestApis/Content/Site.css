@@ -82,3 +82,19 @@ textarea {
     margin-top: 10px;
     display: none;
 }
+
+#betslip #placed-bets {
+    margin-top: 30px;
+}
+
+#betslip #placed-bets .posted-bet-container {
+    background-color: chartreuse;
+    border: 1px dashed green;
+    text-align: center;
+}
+
+#betslip #placed-bets .posted-bet-container .posted-bet-id {
+    font-weight: bold;
+    font-size: 20px;
+    text-align: center;
+}
