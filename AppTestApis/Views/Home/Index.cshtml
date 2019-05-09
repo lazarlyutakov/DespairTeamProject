@@ -1,0 +1,136 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<div id="event-container">
+
+</div>
+
+<div id="betslip">
+
+</div>
+
+
+<script src="~/Scripts/jquery-3.3.1.js"></script>
+<script>
+    var token = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJTaXRlSWQiOjE4MiwiU2Vzc2lvbklkIjoiZDBmNzE4NmMtMmM1Yi00YjNjLThkMGYtM2M4ZmRhMzhhZjMwIiwibmJmIjoxNTU3MzE5MjUwLCJleHAiOjE1NTc5MjQwNTAsImlhdCI6MTU1NzMxOTI1MH0.pu6U7pf8vDyF4lmLegdTTEAdiw5BnL_4IVNmgjjritI';
+
+    var EVENT_API = 'https://stgapi.sbtech.com/ice2018/sportsdata/v2/events?query=%24top%3D3%26%24orderby%3Dtotalbets%20desc%20&count=false';
+    var CALCULATE_BET_API = 'https://stgapi.sbtech.com/ice2018/betting/v1/calculatebets';
+
+    var selectionsMap = {};
+
+    var queryResult = $.ajax({
+        url: EVENT_API,
+        type: "GET",
+        beforeSend: function (xhr) { xhr.setRequestHeader('Authorization', token); },
+    })
+        .then(function (result) {
+            var resultData = result.data;
+            var events = resultData.events;
+            var markets = resultData.markets;
+
+            var df = document.createDocumentFragment();
+
+            for (var event of events) {
+                var eventId = event.id;
+
+                var outerDiv = document.createElement('div');
+                var eventNameSpan = document.createElement('span');
+                eventNameSpan.textContent = event.eventName;
+
+                outerDiv.appendChild(eventNameSpan);
+
+                var marketsList = document.createElement('ul');
+
+                for (var market of markets) {
+                    if (market.eventId === eventId) {
+                        var marketContainerWrapperLi = document.createElement('li');
+                        var marketContainer = document.createElement('div');
+                        var marketName = document.createElement('span');
+
+                        marketName.textContent = market.name;
+
+                        var selectionsList = document.createElement('ul');
+
+                        for (var selection of market.selections) {
+                            var selectionLi = document.createElement('li');
+                            var selectionButton = document.createElement('button');
+                            selectionButton.textContent = selection.name + '(' + selection.displayOdds.decimal + ')';
+                            var $button = $(selectionButton);
+                            $button.attr('data-selection-id', selection.id);
+                            $button.addClass('selection-button');
+
+                            selectionLi.appendChild(selectionButton);
+
+                            selectionsList.appendChild(selectionLi);
+                        }
+
+                        marketContainer.appendChild(marketName);
+                        marketContainer.appendChild(selectionsList);
+
+                        marketContainerWrapperLi.appendChild(marketContainer);
+
+                        marketsList.appendChild(marketContainerWrapperLi);
+                    }
+                }
+
+                outerDiv.appendChild(marketsList);
+                df.appendChild(outerDiv);
+            }
+
+            $('#event-container').append(df);
+        })
+        .then(function () {
+            var buttonCollection = document.getElementsByClassName('selection-button');
+
+            for (var i = 0; i < buttonCollection.length; i++) {
+                buttonCollection[i].addEventListener('click', function () {
+                    var selectionID = $(event.target).attr('data-selection-id');
+
+                    if (selectionsMap[selectionID]) {
+                        selectionsMap[selectionID] = false;
+                    }
+                    else {
+                        selectionsMap[selectionID] = true;
+                    }
+
+                    $(event.target).toggleClass('selected');
+
+                    var dataObject = {};
+                    dataObject.oddsStyle = "decimal";
+                    dataObject.Selections = [];
+
+                    for (var selectionId in selectionsMap) {
+                        if (selectionsMap[selectionId]) {
+                            dataObject.Selections.push({ id: selectionId });
+                        }
+                    }
+
+                    var queryResult = $.ajax({
+                        url: CALCULATE_BET_API,
+                        dataType: 'json',
+                        type: "POST",
+                        beforeSend: function (xhr) {
+                            xhr.setRequestHeader('Authorization', token);
+                            xhr.setRequestHeader('Content-Type', 'application/json');
+                        },
+                        data: JSON.stringify(dataObject)
+                    })
+                        .done(function (result) {
+                            var df = document.createDocumentFragment();
+                            
+                            for (var selection of result.selections) {
+                                var selectionDiv = document.createElement('div');
+                                selectionDiv.textContent = selection.displayOdds;
+
+                                df.appendChild(selectionDiv);
+                            }
+
+                            $('#betslip').html(df);
+                        });
+                }, false);
+            }
+        });
+
+</script>
