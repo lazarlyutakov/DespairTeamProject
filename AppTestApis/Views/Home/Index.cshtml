@@ -17,9 +17,35 @@
 
     var EVENT_API = 'https://stgapi.sbtech.com/ice2018/sportsdata/v2/events?query=%24top%3D3%26%24orderby%3Dtotalbets%20desc%20&count=false';
     var CALCULATE_BET_API = 'https://stgapi.sbtech.com/ice2018/betting/v1/calculatebets';
+    var LOGIN_API = 'https://stgapi.sbtech.com/ice2018/auth/platform/v1/api/login';
 
     var selectionsMap = {};
     var selectionInfoMapping = {};
+
+    var loggedToken;
+    var USERNAME = "TestUser321";
+    var PASSWORD = "TestUser333";
+    var REMEMBERME = "true";
+
+    var loginObject = {}
+    loginObject.name = USERNAME;
+    loginObject.password = PASSWORD;
+    loginObject.rememberMe = REMEMBERME;
+
+    var LoginApi = $.ajax({
+        url: LOGIN_API,
+        type: "POST",
+        data: JSON.stringify(loginObject),
+        dataType: "json",
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader('Authorization', token);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+        }
+    })
+        .done(function (result) {
+            loggedToken = result.token;
+            console.log(loggedToken);
+        })
 
     var queryResult = $.ajax({
         url: EVENT_API,
